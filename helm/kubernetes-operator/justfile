@@ -1,13 +1,25 @@
 set quiet := true
 
 name := "netbird-operator"
+
+image := "local/netbirdio-operator:dev"
+docker_context := "../.."
+
 helm_path := "."
+
 k3d_config := "k3d.yaml"
 kubeconfig := "~/.kube/config"
 
 # List all commands
 list:
     just --list --unsorted
+
+########################################################
+# Docker
+
+# Build image
+build-image:
+    docker build -t {{ image }} -f {{ docker_context }}/Dockerfile {{ docker_context }}
 
 ########################################################
 # K3d
@@ -28,6 +40,15 @@ start-cluster:
 stop-cluster:
     k3d cluster stop {{ name }}
 
+# Import image into k3d cluster
+import-image:
+    k3d image import {{ image }} --cluster {{ name }}
+
+# Build image and import into k3d cluster
+build-and-import:
+    just build-image
+    just import-image
+
 ########################################################
 # Helm
 
@@ -43,9 +64,8 @@ install:
         --install {{ name }} {{ helm_path }} \
         --create-namespace \
         --values {{ helm_path }}/values.yaml \
-        --values {{ helm_path }}/secrets.yaml \
-        --wait \
-        --timeout 5m
+        --values {{ helm_path }}/values.dev.yaml \
+        --values {{ helm_path }}/secrets.yaml
 
 # Uninstall chart
 uninstall:

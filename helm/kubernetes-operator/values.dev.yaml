@@ -1,0 +1,12 @@
+operator:
+  image:
+    registry: "local"
+    repository: netbirdio-operator
+    pullPolicy: Always
+    tag: dev
+
+ingress:
+  enabled: true
+  allowAutomaticPolicyCreation: true
+  kubernetesAPI:
+    enabled: true
