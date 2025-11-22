@@ -1,4 +1,4 @@
-set quiet := true
+set quiet := false
 
 name := "netbird-operator"
 
@@ -46,8 +46,20 @@ import-image:
 
 # Build image and import into k3d cluster
 build-and-import:
+    @echo "Building image..."
     just build-image
+    @echo
+    @echo "Importing image into k3d cluster..."
     just import-image
+
+########################################################
+# kubectl
+
+_kubectl *args:
+    kubectl {{ args }} \
+        --namespace {{ name }} \
+        --kubeconfig {{ kubeconfig }} \
+        --context k3d-{{ name }}
 
 ########################################################
 # Helm
@@ -58,8 +70,28 @@ _helm *args:
         --kubeconfig {{ kubeconfig }} \
         --kube-context k3d-{{ name }}
 
+# Update helm dependencies
+update-deps:
+    @echo "Updating helm dependencies..."
+    helm dependency update --skip-refresh {{ helm_path }}
+
+# Install cert-manager CRDs
+install-cert-manager-crds:
+    @echo "Installing cert-manager CRDs..."
+    kubectl apply \
+        -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.0/cert-manager.yaml \
+        --kubeconfig {{ kubeconfig }} \
+        --context k3d-{{ name }}
+
 # Install chart
 install:
+    @echo "Installing cert-manager CRDs..."
+    just install-cert-manager-crds
+    @echo
+    @echo "Updating helm dependencies..."
+    just update-deps
+    @echo
+    @echo "Installing {{ name }} chart..."
     just _helm upgrade \
         --install {{ name }} {{ helm_path }} \
         --create-namespace \
@@ -69,4 +101,8 @@ install:
 
 # Uninstall chart
 uninstall:
-    just _helm uninstall {{ name }}
+    @echo "Uninstalling {{ name }} chart..."
+    just _helm uninstall {{ name }} 2> /dev/null || true
+    @echo "Deleting namespace {{ name }}..."
+    just _kubectl delete namespace {{ name }} 2> /dev/null || true
+    @echo "Done"

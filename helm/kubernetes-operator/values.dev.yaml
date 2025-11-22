@@ -1,12 +1,16 @@
+logLevel: debug
+
 operator:
   image:
     registry: "local"
     repository: netbirdio-operator
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
     tag: dev
 
 ingress:
-  enabled: true
+  enabled: false
   allowAutomaticPolicyCreation: true
   kubernetesAPI:
-    enabled: true
+    enabled: false
+  router:
+    enabled: false
